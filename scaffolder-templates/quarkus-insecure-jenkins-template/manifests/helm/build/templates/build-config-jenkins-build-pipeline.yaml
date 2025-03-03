@@ -1,0 +1,121 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: {{ .Values.app.name }}-build
+spec:
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        podTemplate(
+                namespace: "{{ .Values.app.name }}-dev",
+                envVars: [
+                    envVar(key: 'CI_TYPE', value: 'jenkins'),
+                    envVar(key: 'GIT_URL', value: '{{ .Values.git.repo }}'),
+                    envVar(key: 'TEMP_DIR', value: './results/tmp'),
+                    envVar(key: 'RESULTS', value: './results'),
+                    envVar(key: 'IMAGE', value: '{{ .Values.image.host }}/{{ .Values.image.organization }}/{{ .Values.app.name }}'),
+                    envVar(key: 'IMAGE_REGISTRY_USER', value: 'quayadmin'),
+                    secretEnvVar(key: 'IMAGE_REGISTRY_PASSWORD', secretName: 'common-password-secret', secretKey: 'password'),
+                ],
+                activeDeadlineSeconds: 600, // 10m limit is more than enough
+                idleMinutes: 1,
+                workspaceVolume: dynamicPVC(requestsSize: "2Gi"),
+                containers: [
+                        containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.13-2-alpine', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi'),
+                        containerTemplate(name: 'maven', image: 'maven:3.8.5-openjdk-17', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
+                ]
+        ) {
+            node(POD_LABEL) {
+                stage("checkout") {
+                    git branch: params.BRANCH ?: 'master',
+                            url: env.GIT_URL
+                    echo "git checkout done..."
+                }
+
+                stage("package") {
+                    container('maven') {
+                        sh """
+                            #!/bin/bash -ex
+                            # .m2 is mutable and short-term, we just sym-link the settings.xml there.
+                            mkdir -p /root/.m2
+                            ln -s ../jenkins-nexus/settings.xml /root/.m2/settings.xml
+
+                            if [ '${params.VERBOSE}' = '1' ]
+                            then
+                                env | sort
+                                mvn --version
+                                df -h
+                            fi
+
+                            mvn package
+
+                            if [ '${params.VERBOSE}' = '1' ]
+                            then
+                                df -h
+                            fi
+                        """
+                    }
+                }
+                stage("build-image") {
+                    container('buildah') {
+                        sh """
+                            IMAGE_REGISTRY="\${IMAGE%%/*}"
+                            buildah login --username="\$IMAGE_REGISTRY_USER" --password="\$IMAGE_REGISTRY_PASSWORD" \$IMAGE_REGISTRY
+                            ERR=\$?
+                            if [ \$ERR != 0 ]; then
+                                echo "Failed buildah login \$IMAGE_REGISTRY for user \$IMAGE_REGISTRY_USER "
+                                exit \$ERR
+                            fi
+
+                            # Check if the Dockerfile exists
+                            SOURCE_CODE_DIR=.
+                            if [ -e "\$SOURCE_CODE_DIR/\$CONTEXT/\$DOCKERFILE" ]; then
+                                dockerfile_path="\$SOURCE_CODE_DIR/\$CONTEXT/\$DOCKERFILE"
+                            elif [ -e "\$SOURCE_CODE_DIR/\$DOCKERFILE" ]; then
+                                dockerfile_path="\$SOURCE_CODE_DIR/\$DOCKERFILE"
+                            else
+                                echo "Cannot find Dockerfile \$DOCKERFILE"
+                                exit 1
+                            fi
+
+                            BUILDAH_ARGS=()
+                            if [ -n "\${BUILD_ARGS_FILE}" ]; then
+                                BUILDAH_ARGS+=("--build-arg-file=\${SOURCE_CODE_DIR}/\${BUILD_ARGS_FILE}")
+                            fi
+
+                            for build_arg in "\$@"; do
+                                BUILDAH_ARGS+=("--build-arg=\$build_arg")
+                            done
+
+                            # Build the image
+                            buildah build \
+                                "\${BUILDAH_ARGS[@]}" \
+                                --tls-verify=\$TLSVERIFY \
+                                --ulimit nofile=4096:4096 \
+                                -f "\$dockerfile_path" -t \$IMAGE \$SOURCE_CODE_DIR/\$CONTEXT
+
+                            # Push the image
+                            buildah push \
+                                --tls-verify=\$TLSVERIFY \
+                                --retry=5 \
+                                --digestfile \$TEMP_DIR/files/image-digest \$IMAGE \
+                                docker://\$IMAGE
+
+                            # Set task results
+                            buildah images --format '{{ .Name }}:{{ .Tag }}@{{ .Digest }}' | grep -v \$IMAGE > \$RESULTS/BASE_IMAGES_DIGESTS
+                            cat \$TEMP_DIR/files/image-digest | tee \$RESULTS/IMAGE_DIGEST
+                            echo -n "\$IMAGE" | tee \$RESULTS/IMAGE_URL
+
+                            # Save the image so it can be used in the generate-sbom step
+                            buildah push "\$IMAGE" oci:\$TEMP_DIR/files/image
+                        """
+                    }
+                }
+            }
+        }
+  triggers:
+    - type: GitLab
+      gitlab:
+        secretReference:
+          name: gitlab-webhook-secret
