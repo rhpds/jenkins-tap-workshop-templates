@@ -110,8 +110,6 @@ spec:
 
                             # Set task results
                             buildah images --format '{{ .Name }}:{{ .Tag }}@{{ .Digest }}' | grep -v \$IMAGE > \$RESULTS/BASE_IMAGES_DIGESTS
-                            cat \$TEMP_DIR/files/image-digest | tee \$RESULTS/IMAGE_DIGEST
-                            echo -n "\$IMAGE" | tee \$RESULTS/IMAGE_URL
 
                             # Save the image so it can be used in the generate-sbom step
                             buildah push "\$IMAGE" oci:\$TEMP_DIR/files/image
