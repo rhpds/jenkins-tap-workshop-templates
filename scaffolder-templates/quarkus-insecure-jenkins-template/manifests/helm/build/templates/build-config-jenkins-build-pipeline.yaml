@@ -22,6 +22,12 @@ spec:
                 idleMinutes: 1,
                 workspaceVolume: dynamicPVC(requestsSize: "2Gi"),
                 containers: [
+                        containerTemplate(name: 'buildah', image: 'quay.io/redhat-appstudio/buildah:v1.31.0@sha256:34f12c7b72ec2c28f1ded0c494b428df4791c909f1f174dd21b8ed6a57cf5ddb',
+                                envVars: [
+                                    envVar(key: 'DOCKERFILE', value: './Dockerfile'),
+                                    envVar(key: 'CONTEXT', value: '.'),
+                                    envVar(key: 'TLSVERIFY', value: 'false'),
+                                ], runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                         containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.13-2-alpine', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi'),
                         containerTemplate(name: 'maven', image: 'maven:3.8.5-openjdk-17', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
                 ]
