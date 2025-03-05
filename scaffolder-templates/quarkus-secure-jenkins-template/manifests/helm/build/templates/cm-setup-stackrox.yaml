@@ -211,7 +211,7 @@ data:
 
   signature-policy.json.j2: |
     {
-        "name": "0-Trusted-Signature-Policy",
+        "name": "0-Build-Signature-Policy",
         "description": "",
         "rationale": "",
         "remediation": "",
