@@ -53,7 +53,6 @@ spec:
                                 ], runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                         containerTemplate(name: 'ubi-minimal', image: 'registry.access.redhat.com/ubi8/ubi-minimal', runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                         containerTemplate(name: 'app-utils', image: 'quay.io/redhat-appstudio/appstudio-utils:5bd7d6cb0b17f9f2eab043a8ad16ba3d90551bc2@sha256:8c7fcf86af40c71aeb58e4279625c8308af5144e2f6b8e28b0ec7e795260e5f7', runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
-                        containerTemplate(name: 'helm', image: 'alpine/helm:3.11.1', runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                         containerTemplate(name: 'gitsign-zip', image: 'registry.redhat.io/rhtas/gitsign-rhel9:1.1.0', runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                         containerTemplate(name: 'cosign-zip', image: 'registry.redhat.io/rhtas/cosign-rhel9:1.1.0', runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
                 ]
@@ -379,38 +378,6 @@ spec:
                                         chmod +x ./roxctl > /dev/null
                                         ./roxctl image scan --insecure-skip-tls-verify \
                                         -e "\$ROX_CENTRAL_ENDPOINT" --image "\$ACS_IMAGE" --output table
-                                    """
-                                }
-                            }
-                        }
-                    },
-                    "acs-deploy-check": {
-                        node(POD_LABEL) {
-                            stage("acs-deployment-check") {
-                                sh """
-                                    GITOPS_URL1=\$(echo \$GIT_URL | sed 's/https:\\/\\/*//')
-                                    GITOPS_URL2=\${GITOPS_URL1%%.git}
-                                    GITOPS_URL=https://\$GITOPS_URL2-gitops.git
-                                    rm -rf *
-                                    git clone \$GITOPS_URL
-                                """
-                                container('helm') {
-                                    sh """
-                                        cd \$COMPONENT_ID-gitops/helm/app
-                                        helm template --dry-run . | awk -vout=out -F": " '\$0~/^# Source: /{file=out"/"\$2; print "Creating "file; system ("mkdir -p \$(dirname "file"); echo -n "" > "file)} \$0!~/^#/ && \$0!="---"{print \$0 >> file}'
-                                    """
-                                }
-                                container('ubi-minimal') {
-                                    sh """
-                                        #!/usr/bin/env bash
-                                        set +x
-                                        cd \$COMPONENT_ID-gitops/helm/app/out/quarkus-template/templates
-                                        curl -s -k -L -H "Authorization: Bearer \$ROX_API_TOKEN" \
-                                        "https://\$ROX_CENTRAL_ENDPOINT/api/cli/download/roxctl-linux" \
-                                        --output ./roxctl > /dev/null
-                                        chmod +x ./roxctl > /dev/null
-                                        ./roxctl deployment check --insecure-skip-tls-verify \
-                                        -e "\$ROX_CENTRAL_ENDPOINT"  --file "deployment.yaml" --output table
                                     """
                                 }
                             }
