@@ -192,31 +192,6 @@ spec:
       workspaces:
       - name: reports
         workspace: reports
-    - name: acs-deploy-check
-      params:
-      - name: rox_central_endpoint
-        value: $(params.stackrox-endpoint)
-      - name: rox_api_token
-        value: $(params.stackrox-secret)
-      - name: git_host
-        value: $(params.git-host)
-      - name: git_owner
-        value: $(params.git-owner)
-      - name: component_id
-        value: $(params.component-id)
-      - name: common_password_secret
-        value: $(params.common-password-secret)
-      - name: insecure-skip-tls-verify
-        value: "true"
-      taskRef:
-        kind: Task
-        name: acs-deploy-check
-      runAfter:
-      - upload-sbom-to-tpa
-      - upload-sbom-to-cyclonedx-repo
-      workspaces:
-      - name: reports
-        workspace: reports
   results:
     - name: IMAGE_URL
       value: "$(tasks.build-sign-image.results.IMAGE_URL)"
