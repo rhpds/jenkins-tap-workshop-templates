@@ -45,7 +45,7 @@ spec:
                         containerTemplate(name: 'syft', image: 'quay.io/redhat-appstudio/syft:v0.94.0', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
                         containerTemplate(name: 'python311', image: 'registry.access.redhat.com/ubi9/python-311:9.5', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
                         containerTemplate(name: 'yq', image: 'quay.io/redhat-user-workloads/rhtap-integration-tenant/yq-container/yq:5f8db9e69e824d7859b61f97596c4f3f839d6c9e', command: 'cat', runAsUser: '0', ttyEnabled: true, resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
-                        containerTemplate(name: 'buildah', image: 'quay.io/redhat-appstudio/buildah:v1.31.0@sha256:34f12c7b72ec2c28f1ded0c494b428df4791c909f1f174dd21b8ed6a57cf5ddb',
+                        containerTemplate(name: 'buildah', image: 'registry.redhat.io/rhel9/buildah:9.5',
                                 envVars: [
                                     envVar(key: 'DOCKERFILE', value: './Dockerfile'),
                                     envVar(key: 'CONTEXT', value: '.'),
