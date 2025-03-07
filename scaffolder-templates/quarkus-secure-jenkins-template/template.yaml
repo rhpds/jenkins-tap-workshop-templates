@@ -47,10 +47,10 @@ spec:
           default: A cool quarkus app
     - title: Provide Image Registry Information
       required:
-      - image_registry
-      - image_host
-      - image_organization
-      - image_tag
+        - image_registry
+        - image_host
+        - image_organization
+        - image_tag
       properties:
         image_registry:
           title: Image host
