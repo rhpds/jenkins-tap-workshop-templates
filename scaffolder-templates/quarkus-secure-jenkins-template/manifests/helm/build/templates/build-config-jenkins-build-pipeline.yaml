@@ -260,88 +260,84 @@ spec:
                 }
                 parallel (
                     "upload-sbom-to-cyclonedx-repo": {
-                        node(POD_LABEL) {
-                            stage("upload-sbom-to-cyclonedx-repo") {
-                                container('ubi-minimal') {
-                                    unstash 'sbom'
-                                    sh """
-                                        curl -X POST \$CYCLONE_DX_URL/v1/bom -H "Content-Type: application/vnd.cyclonedx+json; version=1.4" -H "Accept: */*" -d @\$TEMP_DIR/files/sbom-cyclonedx.json -D /tmp/header.txt > /dev/null
+                        stage("upload-sbom-to-cyclonedx-repo") {
+                            container('ubi-minimal') {
+                                unstash 'sbom'
+                                sh """
+                                    curl -X POST \$CYCLONE_DX_URL/v1/bom -H "Content-Type: application/vnd.cyclonedx+json; version=1.4" -H "Accept: */*" -d @\$TEMP_DIR/files/sbom-cyclonedx.json -D /tmp/header.txt > /dev/null
 
-                                        cat /tmp/header.txt
+                                    cat /tmp/header.txt
 
-                                        LOCATION=\$(cat /tmp/header.txt | grep location: | awk '{print \$2}' | sed 's|http:|https:|g')
+                                    LOCATION=\$(cat /tmp/header.txt | grep location: | awk '{print \$2}' | sed 's|http:|https:|g')
 
-                                        echo location is \$LOCATION
-                                    """
-                                }
+                                    echo location is \$LOCATION
+                                """
                             }
                         }
                     },
                     "upload-sbom-to-tpa": {
-                        node(POD_LABEL) {
-                            stage("upload-sbom-to-tpa") {
-                                container('app-utils') {
-                                    unstash 'sbom'
-                                    sh """
-                                        set -o errexit -o nounset -o pipefail
+                        stage("upload-sbom-to-tpa") {
+                            container('app-utils') {
+                                unstash 'sbom'
+                                sh """
+                                    set -o errexit -o nounset -o pipefail
 
-                                        SBOMS_DIR=\$TEMP_DIR/files
-                                        WORKDIR=./wd
-                                        mkdir \$WORKDIR
+                                    SBOMS_DIR=\$TEMP_DIR/files
+                                    WORKDIR=./wd
+                                    mkdir \$WORKDIR
 
-                                        filepath=\$TEMP_DIR/files/sbom-cyclonedx.json
+                                    filepath=\$TEMP_DIR/files/sbom-cyclonedx.json
 
-                                        sed -i 's|"./results/tmp/files/image|"'"$COMPONENT_ID"'|' \$filepath
+                                    sed -i 's|"./results/tmp/files/image|"'"$COMPONENT_ID"'|' \$filepath
 
-                                        sbom_id="sha256:\$(sha256sum "\$filepath" | cut -d ' ' -f 1)"
+                                    sbom_id="sha256:\$(sha256sum "\$filepath" | cut -d ' ' -f 1)"
 
-                                        sbom_path="\$WORKDIR/\$sbom_id.json"
-                                        ln -s "\$(realpath "\$filepath")" "\$sbom_path"
+                                    sbom_path="\$WORKDIR/\$sbom_id.json"
+                                    ln -s "\$(realpath "\$filepath")" "\$sbom_path"
 
-                                        cp --no-dereference "\$sbom_path" "\${sbom_path}.supported_version"
+                                    cp --no-dereference "\$sbom_path" "\${sbom_path}.supported_version"
 
-                                        curl_opts=(--silent --show-error --fail-with-body --retry 3)
+                                    curl_opts=(--silent --show-error --fail-with-body --retry 3)
 
-                                        openid_configuration_url="\${OIDC_ISSUER_URL%/}/.well-known/openid-configuration"
-                                        echo "Getting OIDC issuer configuration from \$openid_configuration_url"
+                                    openid_configuration_url="\${OIDC_ISSUER_URL%/}/.well-known/openid-configuration"
+                                    echo "Getting OIDC issuer configuration from \$openid_configuration_url"
 
-                                        token_endpoint="\$(curl "\${curl_opts[@]}" "\$openid_configuration_url" | jq -r .token_endpoint)"
+                                    token_endpoint="\$(curl "\${curl_opts[@]}" "\$openid_configuration_url" | jq -r .token_endpoint)"
 
-                                        original_sbom_relpath="\$(realpath "\$sbom_path" --relative-base="\$SBOMS_DIR")"
-                                        echo
-                                        echo "--- Processing \$original_sbom_relpath ---"
+                                    original_sbom_relpath="\$(realpath "\$sbom_path" --relative-base="\$SBOMS_DIR")"
+                                    echo
+                                    echo "--- Processing \$original_sbom_relpath ---"
 
-                                        echo "Getting OIDC token from \$token_endpoint"
-                                        token_response="\$(
-                                        curl "\${curl_opts[@]}" \
-                                            -u "\${OIDC_CLIENT_ID}:\${OIDC_CLIENT_SECRET}" \
-                                            -d "grant_type=client_credentials" \
-                                            "\$token_endpoint"
-                                        )"
+                                    echo "Getting OIDC token from \$token_endpoint"
+                                    token_response="\$(
+                                    curl "\${curl_opts[@]}" \
+                                        -u "\${OIDC_CLIENT_ID}:\${OIDC_CLIENT_SECRET}" \
+                                        -d "grant_type=client_credentials" \
+                                        "\$token_endpoint"
+                                    )"
 
-                                        access_token="\$(jq -r .access_token <<< "\$token_response")"
-                                        token_type="\$(jq -r .token_type <<< "\$token_response")"
-                                        expires_in="\$(jq -r ".expires_in // empty" <<< "\$token_response")"
+                                    access_token="\$(jq -r .access_token <<< "\$token_response")"
+                                    token_type="\$(jq -r .token_type <<< "\$token_response")"
+                                    expires_in="\$(jq -r ".expires_in // empty" <<< "\$token_response")"
 
-                                        retry_max_time=0  # no limit
-                                        if [[ -n "\$expires_in" ]]; then
-                                            retry_max_time="\$expires_in"
-                                        fi
+                                    retry_max_time=0  # no limit
+                                    if [[ -n "\$expires_in" ]]; then
+                                        retry_max_time="\$expires_in"
+                                    fi
 
-                                        sbom_id="\$(basename -s .json "\$sbom_path")"
-                                        supported_version_of_sbom="\${sbom_path}.supported_version"
+                                    sbom_id="\$(basename -s .json "\$sbom_path")"
+                                    supported_version_of_sbom="\${sbom_path}.supported_version"
 
-                                        echo "Uploading SBOM to \$BOMBASTIC_API_URL (with id=\$sbom_id)"
-                                        # https://docs.trustification.dev/trustification/user/bombastic.html#publishing-an-sbom-doc
-                                        curl "\${curl_opts[@]}" \
-                                        --retry-max-time "\$retry_max_time" \
-                                        -H "authorization: \$token_type \$access_token" \
-                                        -H "transfer-encoding: chunked" \
-                                        -H "content-type: application/json" \
-                                        --data "@\$supported_version_of_sbom" \
-                                        "\$BOMBASTIC_API_URL/api/v1/sbom?id=\$sbom_id"
-                                    """
-                                }
+                                    echo "Uploading SBOM to \$BOMBASTIC_API_URL (with id=\$sbom_id)"
+                                    # https://docs.trustification.dev/trustification/user/bombastic.html#publishing-an-sbom-doc
+                                    curl "\${curl_opts[@]}" \
+                                    --retry-max-time "\$retry_max_time" \
+                                    -H "authorization: \$token_type \$access_token" \
+                                    -H "transfer-encoding: chunked" \
+                                    -H "content-type: application/json" \
+                                    --data "@\$supported_version_of_sbom" \
+                                    "\$BOMBASTIC_API_URL/api/v1/sbom?id=\$sbom_id"
+                                """
                             }
                         }
                     }
