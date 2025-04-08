@@ -4,7 +4,7 @@ metadata:
   name: scan-code
 spec:
   params:
-  - default: quay.io/redhat-gpte/sonar-scanner-cli:10.0
+  - default: docker.io/sonarsource/sonar-scanner-cli:10.0
     name: scanImage
     type: string
   - default: https://sonarqube-sonarqube.apps.cluster-tpn6s.sandbox2653.opentlc.com/
