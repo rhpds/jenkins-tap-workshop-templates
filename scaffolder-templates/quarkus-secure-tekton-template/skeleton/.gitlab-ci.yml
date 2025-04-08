@@ -29,6 +29,7 @@ build-job:
     ENTITY_KIND: 'Component'
     ENTITY_NAME: ${{ values.component_id }}
   image: quay.io/redhat-gpte/techdocs-cli
+  retry: 2
   stage: build
   script:
   - techdocs-cli generate --no-docker --verbose

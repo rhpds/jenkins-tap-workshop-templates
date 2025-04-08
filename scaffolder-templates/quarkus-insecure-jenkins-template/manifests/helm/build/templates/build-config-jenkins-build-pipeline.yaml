@@ -22,13 +22,13 @@ spec:
                 idleMinutes: 1,
                 workspaceVolume: dynamicPVC(requestsSize: "2Gi"),
                 containers: [
-                        containerTemplate(name: 'buildah', image: 'registry.redhat.io/rhel9/buildah:9.5',
+                        containerTemplate(name: 'buildah', image: 'quay.io/redhat-appstudio/buildah:v1.31.0@sha256:34f12c7b72ec2c28f1ded0c494b428df4791c909f1f174dd21b8ed6a57cf5ddb',
                                 envVars: [
                                     envVar(key: 'DOCKERFILE', value: './Dockerfile'),
                                     envVar(key: 'CONTEXT', value: '.'),
                                     envVar(key: 'TLSVERIFY', value: 'false'),
                                 ], runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
-                        containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:jdk21@sha256:ee12e15af950d65cf80ad10a573461d491cd3f28707eab94f4f2534d6c133d70', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi'),
+                        containerTemplate(name: 'jnlp', image: 'quay.io/redhat-gpte/jenkins-inbound-agent:jdk21', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi'),
                         containerTemplate(name: 'maven', image: 'maven:3.8.5-openjdk-17', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
                 ]
         ) {
@@ -37,7 +37,6 @@ spec:
                     git branch: params.BRANCH ?: 'master',
                             url: env.GIT_URL
                     echo "git checkout done..."
-                    sh "mkdir -p \$TEMP_DIR/files"
                 }
 
                 stage("package") {
@@ -108,6 +107,14 @@ spec:
                                 --retry=5 \
                                 --digestfile \$TEMP_DIR/files/image-digest \$IMAGE \
                                 docker://\$IMAGE
+
+                            # Set task results
+                            buildah images --format '{{ .Name }}:{{ .Tag }}@{{ .Digest }}' | grep -v \$IMAGE > \$RESULTS/BASE_IMAGES_DIGESTS
+                            cat \$TEMP_DIR/files/image-digest | tee \$RESULTS/IMAGE_DIGEST
+                            echo -n "\$IMAGE" | tee \$RESULTS/IMAGE_URL
+
+                            # Save the image so it can be used in the generate-sbom step
+                            buildah push "\$IMAGE" oci:\$TEMP_DIR/files/image
                         """
                     }
                 }
