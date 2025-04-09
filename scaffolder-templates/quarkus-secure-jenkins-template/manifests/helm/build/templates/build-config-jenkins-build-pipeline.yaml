@@ -95,6 +95,14 @@ spec:
                             gunzip -c ./bin/cosign.gz > ./bin/cosign && chmod +x ./bin/cosign && rm -f ./bin/cosign.gz
                         """
                     }
+                    container('ubi-minimal') {
+                        sh """
+                            curl -s -k -L -H "Authorization: Bearer \$ROX_API_TOKEN" \
+                            "https://\$ROX_CENTRAL_ENDPOINT/api/cli/download/roxctl-linux" \
+                            --output ./bin/roxctl > /dev/null
+                            chmod +x ./bin/roxctl > /dev/null
+                        """
+                    }
                     script {
                       env.GIT_COMMIT = readFile "${env.TEMP_DIR}/files/GIT_COMMIT"
                     }
@@ -345,38 +353,26 @@ spec:
                 )
                 parallel (
                     "acs-image-check": {
-                        node(POD_LABEL) {
-                            stage("acs-image-check") {
-                                container('ubi-minimal') {
-                                    sh """
-                                        #!/usr/bin/env bash
-                                        set +x
-                                        curl -s -k -L -H "Authorization: Bearer \$ROX_API_TOKEN" \
-                                        "https://\$ROX_CENTRAL_ENDPOINT/api/cli/download/roxctl-linux" \
-                                        --output ./roxctl > /dev/null
-                                        chmod +x ./roxctl > /dev/null
-                                        ./roxctl image check --insecure-skip-tls-verify \
-                                        -e "\$ROX_CENTRAL_ENDPOINT" --image "\$ACS_IMAGE" --output table
-                                    """
-                                }
+                        stage("acs-image-check") {
+                            container('ubi-minimal') {
+                                sh """
+                                    #!/usr/bin/env bash
+                                    set +x
+                                    ./bin/roxctl image check --insecure-skip-tls-verify \
+                                    -e "\$ROX_CENTRAL_ENDPOINT" --image "\$ACS_IMAGE" --output table --force
+                                """
                             }
                         }
                     },
                     "acs-image-scan": {
-                        node(POD_LABEL) {
-                            stage("acs-image-scan") {
-                                container('ubi-minimal') {
-                                    sh """
-                                        #!/usr/bin/env bash
-                                        set +x
-                                        curl -s -k -L -H "Authorization: Bearer \$ROX_API_TOKEN" \
-                                        "https://\$ROX_CENTRAL_ENDPOINT/api/cli/download/roxctl-linux" \
-                                        --output ./roxctl > /dev/null
-                                        chmod +x ./roxctl > /dev/null
-                                        ./roxctl image scan --insecure-skip-tls-verify \
-                                        -e "\$ROX_CENTRAL_ENDPOINT" --image "\$ACS_IMAGE" --output table
-                                    """
-                                }
+                        stage("acs-image-scan") {
+                            container('ubi-minimal') {
+                                sh """
+                                    #!/usr/bin/env bash
+                                    set +x
+                                    ./bin/roxctl image scan --insecure-skip-tls-verify \
+                                    -e "\$ROX_CENTRAL_ENDPOINT" --image "\$ACS_IMAGE" --output table --force
+                                """
                             }
                         }
                     }

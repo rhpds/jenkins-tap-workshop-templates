@@ -37,7 +37,7 @@ spec:
                     git branch: params.BRANCH ?: 'master',
                             url: env.GIT_URL
                     echo "git checkout done..."
-                    mkdir -p $TEMP_DIR/files
+                    sh "mkdir -p $TEMP_DIR/files"
                 }
 
                 stage("package") {

@@ -47,35 +47,32 @@ spec:
           default: A cool quarkus app
     - title: Provide Image Registry Information
       required:
-        - image_registry
+      - image_registry
+      - image_host
+      - image_organization
+      - image_tag
       properties:
         image_registry:
-          title: Image Registry
+          title: Image host
           type: string
           enum:
             - Quay
-      dependencies:
-        image_registry:
-          oneOf:
-            - properties:
-                image_registry:
-                  enum:
-                    - Quay
-                image_host:
-                  title: Image Host
-                  type: string
-                  description: Host for storing image
-                  default: {{ quay_host }}
-                image_organization:
-                  title: Organization
-                  type: string
-                  description: Name of the Quay Organization
-                  default: quayadmin
-                image_tag:
-                  title: Image Tag
-                  default: latest
-                  type: string
-                  description: Build Image tag
+          default: Quay
+        image_host:
+          title: Image Host
+          type: string
+          description: Host for storing image
+          default: {{ quay_host }}
+        image_organization:
+          title: Organization
+          type: string
+          description: Name of the Quay Organization
+          default: quayadmin
+        image_tag:
+          title: Image Tag
+          default: latest
+          type: string
+          description: Build Image tag
     - title: Application repository Information
       required:
         - repo
