@@ -27,6 +27,7 @@ spec:
                     envVar(key: 'CYCLONE_DX_URL', value: 'https://cyclonedx-bom-repo-server-cyclonedx{{ .Values.app.cluster }}'),
                     secretEnvVar(key: 'ROX_API_TOKEN', secretName: 'stackrox-token', secretKey: 'rox_api_token'),
                     envVar(key: 'ROX_CENTRAL_ENDPOINT', value: 'central.stackrox.svc:443'),
+                    envVar(key: 'GRPC_ENFORCE_ALPN_ENABLED', value: 'FALSE'),
                     envVar(key: 'SONARQUBE_HOST_URL', value: 'http://sonarqube.sonarqube.svc:9000'),
                     secretEnvVar(key: 'SONAR_TOKEN_WEB_UI', secretName: 'sonarqube-secret', secretKey: 'token'),
                     secretEnvVar(key: 'OCP_ADMIN_PASSWORD', secretName: 'common-password-secret', secretKey: 'password'),
