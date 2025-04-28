@@ -46,6 +46,8 @@ spec:
         secretKeyRef:
           key: rox_api_token
           name: $(params.rox_api_token)
+    - name: GRPC_ENFORCE_ALPN_ENABLED
+      value: 'FALSE'
     image: registry.access.redhat.com/ubi8/ubi-minimal
     name: rox-image-scan
     script: |

@@ -102,6 +102,8 @@ spec:
             secretKeyRef:
               key: rox_api_token
               name: $(params.rox_api_token)
+        - name: GRPC_ENFORCE_ALPN_ENABLED
+          value: 'FALSE'
       image: 'registry.access.redhat.com/ubi8:8.7-1026'
       name: rox-deploy-scan
       resources: {}
