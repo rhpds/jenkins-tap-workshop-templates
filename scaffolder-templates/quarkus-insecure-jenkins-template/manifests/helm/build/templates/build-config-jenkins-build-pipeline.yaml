@@ -27,9 +27,9 @@ spec:
                                     envVar(key: 'DOCKERFILE', value: './Dockerfile'),
                                     envVar(key: 'CONTEXT', value: '.'),
                                     envVar(key: 'TLSVERIFY', value: 'false'),
-                                ], runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi'),
-                        containerTemplate(name: 'jnlp', image: 'quay.io/redhat-gpte/jenkins-inbound-agent:jdk21', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi'),
-                        containerTemplate(name: 'maven', image: 'maven:3.8.5-openjdk-17', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi'),
+                                ], runAsUser: '0', privileged: true, ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '5Gi', imagePullPolicy: 'IfNotPresent'),
+                        containerTemplate(name: 'jnlp', image: 'quay.io/redhat-gpte/jenkins-inbound-agent:jdk21', runAsUser: '0', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '1Gi', resourceLimitMemory: '1Gi', imagePullPolicy: 'IfNotPresent'),
+                        containerTemplate(name: 'maven', image: 'maven:3.8.5-openjdk-17', runAsUser: '0', ttyEnabled: true, command: 'cat', resourceRequestCpu: '1', resourceLimitCpu: '1', resourceRequestMemory: '2Gi', resourceLimitMemory: '2Gi', imagePullPolicy: 'IfNotPresent'),
                 ]
         ) {
             node(POD_LABEL) {
